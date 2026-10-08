@@ -31,7 +31,6 @@ int main(int argc , char *argv[])
     optional<node_prog*>AST=parser.parse_prog();
     Generator generator(AST.value());
     {
-        fstream file("aut.asm"  , ios::out);
-        file << generator.generate();
+        generator.gen();
     }
 }

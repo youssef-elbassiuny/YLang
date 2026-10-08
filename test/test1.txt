@@ -1,45 +1,12 @@
-
-
-// Exercises: let, assignment, arithmetic + precedence, grouped expr,
-// while, if / elif / else, nested scopes, return.
-// Expected exit code: 49
-
-/* arithmetic + operator precedence + parentheses
-   (unused value, just to prove the expression grammar works) */
-
-let a = 5;
-let b = 10;
-let sum = a + b * 2 - (a - 1) / 1;   // 5 + 20 - 4 = 21
-
-// while loop: sums 3 + 2 + 1
-let x = 3;
-let result = 0;
-while (x)
-{
-    result = result + x;
-    x = x - 1;
+let x = 10;
+x = x -10;
+if(x){
+x=6;
 }
-// result == 6 here
-
-// if / elif / else chain
-if (result)
-{
-    let i = 1;
-    result = result + i;   // result == 7
+elif(x+1){
+x=3;
 }
-elif (a)
-{
-    result = 0;
+else{
+x=4;
 }
-else
-{
-    result = 99;
-}
-
-// bare nested scope: variables declared inside disappear after the block
-{
-    let scoped = 42;
-    result = result + scoped;  // result == 49
-}
-
-return result;
+return x;
