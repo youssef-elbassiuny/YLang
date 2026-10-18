@@ -1,6 +1,6 @@
-# C++ Compiler
+# YLang
 
-A small compiler written in C++ that parses a custom programming language and generates x86-64 assembly code.
+A small compiler written in C++ that parses a custom programming language and generates LLVM Intermediate Representation (LLVM IR).
 
 ## Requirements
 
@@ -9,68 +9,74 @@ Before using the compiler, make sure you have the following installed:
 - C++
 - CMake
 - Make
-- NASM
+- LLVM (including `lli`)
 - Linux
 
 ## Building the Compiler
 
 First, clone the repository:
 
-    git clone https://github.com/youssef-elbassiuny/comp.git
-    cd comp
+```bash
+git clone https://github.com/youssef-elbassiuny/comp.git
+cd comp
+```
 
 ## Complete Workflow
 
 The complete workflow from the `build` directory is:
 
-    cmake -G "Unix Makefiles" ..
-    make
-    ./main ../test/test1.txt
-    nasm -felf64 aut.asm
-    ld -o aut aut.o
-    ./aut
-    echo $?
+```bash
+cmake -G "Unix Makefiles" ..
+cmake --build .
+./main ../test/test1.txt
+lli output.ll
+echo $?
+```
 
 ## Example Program
 
 Example source code:
 
-    let x = 10;
-    let y = 20;
+```cpp
+let x = 10;
+let i = 0;
 
-    let z = x + y * 2;
+while (i < 5)
+{
+    x = x + 1;
+    i = i + 1;
+}
 
-    while (x)
-    {
-        x = x - 1;
-    }
-
-    if (z)
-    {
-        let result = z / 2;
-        return result;
-    }
-    else
-    {
-        return 0;
-    }
+if (x == 15)
+{
+    let result = x / 3;
+    return result;
+}
+else
+{
+    return 0;
+}
+```
 
 Save the program as a `.txt` file and pass it to the compiler:
 
-    ./main ../test/test1.txt
+```bash
+./main ../test/test1.txt
+```
 
-Then assemble and link the generated assembly:
+The compiler generates an LLVM IR file named `output.ll`.
 
-    nasm -felf64 aut.asm
-    ld -o aut aut.o
+Run the generated LLVM IR using LLVM's interpreter:
 
-Finally, run it:
-
-    ./aut
+```bash
+lli output.ll
+```
 
 And check the return value:
 
-    echo $?
+```bash
+echo $?
+```
 
 ## Supported Features
 
@@ -84,62 +90,71 @@ The compiler currently supports:
 - Multiplication (`*`)
 - Division (`/`)
 - Parenthesized expressions
-- `if`
-- `elif`
-- `else`
-- `while`
+- Boolean expressions
+- Comparison operators:
+    - Less than (`<`)
+    - Greater than (`>`)
+    - Less than or equal to (`<=`)
+    - Greater than or equal to (`>=`)
+    - Equality (`==`)
+- Conditional statements:
+    - `if`
+    - `elif`
+    - `else`
+- `while` loops
 - Nested scopes
 - `return`
-- x86-64 assembly generation
+- LLVM IR code generation
 
 ## Compiler Pipeline
 
 The compiler works through several stages:
 
-    Source Code
-         |
-         v
-    Tokenizer
-         |
-         v
-    Tokens
-         |
-         v
-    Parser
-         |
-         v
-    AST (Abstract Syntax Tree)
-         |
-         v
-    Code Generator
-         |
-         v
-    x86-64 Assembly
-         |
-         v
-    NASM
-         |
-         v
-    Object File
-         |
-         v
-    Executable
+```text
+Source Code
+     |
+     v
+Tokenizer
+     |
+     v
+Tokens
+     |
+     v
+Parser
+     |
+     v
+AST (Abstract Syntax Tree)
+     |
+     v
+Code Generator
+     |
+     v
+LLVM IR
+     |
+     v
+LLVM Interpreter (lli)
+     |
+     v
+Program Exit Code
+```
 
 ## Project Structure
 
-    comp/
-    ├── include/
-    ├── scr/
-    ├── test/
-    ├── CMakeLists.txt
-    └── README.md
+```text
+comp/
+├── include/
+├── scr/
+├── test/
+├── CMakeLists.txt
+└── README.md
+```
 
 ## Technologies
 
 - C++
 - CMake
-- NASM
-- x86-64 Assembly
+- LLVM
+- LLVM IR
 - Linux
 - Git
 

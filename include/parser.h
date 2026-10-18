@@ -13,30 +13,30 @@ struct node_number
 {
     token number;
 };
-struct node_expr;
+struct node_arithmetic_expr;
 struct node_grouped_expr
 {
-    node_expr* expr;
+    node_arithmetic_expr* expr;
 };
 struct node_bin_expr_add
 {
-    node_expr* lhs;
-    node_expr* rhs;
+    node_arithmetic_expr* lhs;
+    node_arithmetic_expr* rhs;
 };
 struct node_bin_expr_mult
 {
-    node_expr* lhs;
-    node_expr* rhs;
+    node_arithmetic_expr* lhs;
+    node_arithmetic_expr* rhs;
 };
 struct node_bin_expr_div
 {
-    node_expr* lhs;
-    node_expr* rhs;
+    node_arithmetic_expr* lhs;
+    node_arithmetic_expr* rhs;
 };
 struct node_bin_expr_sub
 {
-    node_expr* lhs;
-    node_expr* rhs;
+    node_arithmetic_expr* lhs;
+    node_arithmetic_expr* rhs;
 };
 struct node_bin
 {
@@ -46,17 +46,23 @@ struct node_term
 {
     variant<node_ident* , node_number* , node_grouped_expr*>var;
 };
-struct node_expr
+struct node_arithmetic_expr
 {
     variant<node_bin* , node_term*>var;
 };
+struct node_bool_expr
+{
+    optional<token> op;
+    node_arithmetic_expr* lhs;
+    optional<node_arithmetic_expr*> rhs;
+};
 struct node_return
 {
-    node_expr* expr;
+    node_arithmetic_expr* expr;
 };
 struct node_let
 {
-    node_expr* expr;
+    node_arithmetic_expr* expr;
     token ident;
 };
 struct node_st;
@@ -67,7 +73,7 @@ struct node_scope
 struct node_if_pred;
 struct node_if_pred_else_if
 {
-    node_expr* expr;
+    node_bool_expr* expr;
     node_scope* scope;
     optional<node_if_pred*>pred;
 };
@@ -81,18 +87,18 @@ struct node_if_pred
 };
 struct node_if
 {
-    node_expr* expr;
+    node_bool_expr* expr;
     node_scope* scope;
     optional<node_if_pred*>pred;
 };
 struct node_assignment
 {
     token ident;
-    node_expr* expr;
+    node_arithmetic_expr* expr;
 };
 struct node_while
 {
-    node_expr* expr;
+    node_bool_expr* expr;
     node_scope* scope;
 };
 struct node_st
@@ -134,7 +140,7 @@ public:
         else if (peek().has_value() && peek().value().type==token_type::open)
         {
             consume();
-            auto expr=parse_expr();
+            auto expr=parse_arithmetic_expr();
             if (!expr.has_value())
             {
                 cerr<<"expected expression"<<endl;
@@ -162,15 +168,43 @@ public:
         }
     }
 
+    optional<node_bool_expr*>parse_bool_expr()
+    {
+        node_bool_expr* exp=m_allocator.alloc<node_bool_expr>();
+        auto lhs_arithmetic_exp=parse_arithmetic_expr();
+        if (!lhs_arithmetic_exp)
+        {
+            return{};
+        }
+        exp->lhs=lhs_arithmetic_exp.value();
+        if (peek().has_value() && (peek().value().type==token_type::bigger
+            || peek().value().type==token_type::smaller
+            || peek().value().type==token_type::e_bigger
+            || peek().value().type==token_type::e_smaller
+            ||peek().value().type==token_type::d_equal))
+        {
+            exp->op=consume();
+            auto rhs_arithmetic_exp=parse_arithmetic_expr();
+            if (!rhs_arithmetic_exp)
+            {
+                return{};
+            }
+            exp->rhs=rhs_arithmetic_exp.value();
+        }
 
-    optional<node_expr*>parse_expr(int min_precedence =0)
+        return exp;
+
+    }
+
+
+    optional<node_arithmetic_expr*>parse_arithmetic_expr(int min_precedence =0)
     {
         auto lhs_term=parse_term();
         if (!lhs_term)
         {
             return {};
         }
-        node_expr* lhs=m_allocator.alloc<node_expr>();
+        node_arithmetic_expr* lhs=m_allocator.alloc<node_arithmetic_expr>();
         lhs->var=lhs_term.value();
 
         while (true)
@@ -186,14 +220,14 @@ public:
                 break;
             }
             token op=consume();
-            auto rhs=parse_expr(precedence_value.value()+1);
+            auto rhs=parse_arithmetic_expr(precedence_value.value()+1);
             if (!rhs)
             {
                 cerr<<"expected expression aftert operator"<<endl;
                 exit(EXIT_FAILURE);
             }
             node_bin* bin=m_allocator.alloc<node_bin>();
-            node_expr* new_expr=m_allocator.alloc<node_expr>();
+            node_arithmetic_expr* new_expr=m_allocator.alloc<node_arithmetic_expr>();
 
             switch (op.type)
             {
@@ -277,7 +311,7 @@ public:
                 exit(EXIT_FAILURE);
             }
             node_if_pred_else_if* n_i_f=m_allocator.alloc<node_if_pred_else_if>();
-            if (auto exp =parse_expr())
+            if (auto exp =parse_bool_expr())
             {
                 n_i_f->expr=exp.value();
             }
@@ -338,7 +372,7 @@ public:
         {
             consume();
             node_return* _return =m_allocator.alloc<node_return>();
-            if (auto exp =parse_expr())
+            if (auto exp =parse_arithmetic_expr())
             {
                 _return->expr=exp.value();
             }
@@ -368,7 +402,7 @@ public:
             node_let* let=m_allocator.alloc<node_let>();
             let->ident=consume();
             consume();
-            if (auto exp =parse_expr())
+            if (auto exp =parse_arithmetic_expr())
             {
                 let->expr=exp.value();
             }
@@ -396,7 +430,7 @@ public:
             node_assignment* assignment=m_allocator.alloc<node_assignment>();
             assignment->ident=consume();
             consume();
-            if (auto exp =parse_expr())
+            if (auto exp =parse_arithmetic_expr())
             {
                 assignment->expr=exp.value();
             }
@@ -447,7 +481,7 @@ public:
                 exit(EXIT_FAILURE);
             }
             node_if* _if=m_allocator.alloc<node_if>();
-            if (auto exp=parse_expr())
+            if (auto exp=parse_bool_expr())
             {
                 _if->expr=exp.value();
             }
@@ -493,7 +527,7 @@ public:
                 exit(EXIT_FAILURE);
             }
             node_while* _while=m_allocator.alloc<node_while>();
-            if (auto expr =parse_expr())
+            if (auto expr =parse_bool_expr())
             {
                 _while->expr=expr.value();
             }

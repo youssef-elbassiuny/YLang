@@ -7,19 +7,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(LLVM REQUIRED CONFIG)
 
-add_executable(main
-        scr/main.cpp
+add_executable(ylang
+        scr/ylang.cpp
 )
 
-target_include_directories(main PRIVATE
+target_include_directories(ylang PRIVATE
         ${PROJECT_SOURCE_DIR}/include
         ${LLVM_INCLUDE_DIRS}
 )
 
-target_compile_definitions(main PRIVATE
+target_compile_definitions(ylang PRIVATE
         ${LLVM_DEFINITIONS}
 )
 
-target_link_libraries(main PRIVATE
+target_link_libraries(ylang PRIVATE
         LLVM
 )

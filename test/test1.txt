@@ -1,12 +1,24 @@
 let x = 10;
-x = x -10;
-if(x){
-x=6;
+let i = 0;
+
+if (1 > 0) {
+    let x = 20;
+    x = x + 5;
 }
-elif(x+1){
-x=3;
+
+while (i < 5) {
+    x = x + 1;
+    i = i + 1;
 }
-else{
-x=4;
+
+if (x == 15) {
+    x = 100;
 }
+ elif (x == 20) {
+    x = 200;
+}
+ else {
+    x = 300;
+}
+
 return x;

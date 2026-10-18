@@ -22,7 +22,13 @@ enum class token_type
     div,
     star,
     plus,
-    _while
+    _while,
+    bigger,
+    smaller,
+    e_bigger,
+    e_smaller,
+    d_equal,
+
 
 };
 
@@ -135,6 +141,24 @@ public:
                 consume();
 
             }
+            else if (peek().value()=='=' && peek(1).has_value() && peek(1).value()=='=')
+            {
+                consume();
+                consume();
+                tokens.push_back({.type=token_type::d_equal});
+            }
+            else if (peek().value()=='<' && peek(1).has_value() && peek(1).value()=='=')
+            {
+                consume();
+                consume();
+                tokens.push_back({.type = token_type::e_smaller});
+            }
+            else if (peek().value()=='>' && peek(1).has_value() && peek(1).value()=='=')
+            {
+                consume();
+                consume();
+                tokens.push_back({.type = token_type::e_bigger});
+            }
             else if (peek().value()=='=')
             {
                 consume();
@@ -185,6 +209,17 @@ public:
                 consume();
                 tokens.push_back({.type =token_type::semi});
             }
+            else if (peek().value()=='>')
+            {
+                consume();
+                tokens.push_back({.type = token_type::bigger});
+            }
+            else if (peek().value()=='<')
+            {
+                consume();
+                tokens.push_back({.type = token_type::smaller});
+            }
+
             else if (isspace(peek().value()))
             {
                 consume();
