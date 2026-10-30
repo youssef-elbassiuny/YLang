@@ -36,6 +36,7 @@ struct token
 {
     token_type type;
     optional<string>value;
+    size_t count_line;
 };
 
  optional<int>precedence(token_type type)
@@ -60,7 +61,7 @@ public:
     {
 
     }
-    vector<token>tokenize()
+    pair<vector<token> , size_t>tokenize()
     {
         vector<token>tokens;
         string buf;
@@ -75,37 +76,37 @@ public:
                 }
                 if(buf=="return")
                 {
-                   tokens.push_back({.type=token_type::_return});
+                   tokens.push_back({.type=token_type::_return , .count_line = m_count_line});
                     buf.clear();
                 }
                 else if (buf=="if")
                 {
-                    tokens.push_back({.type=token_type::_if});
+                    tokens.push_back({.type=token_type::_if ,.count_line = m_count_line});
                     buf.clear();
                 }
                 else if (buf=="else")
                 {
-                    tokens.push_back({.type=token_type::_else});
+                    tokens.push_back({.type=token_type::_else , .count_line = m_count_line});
                     buf.clear();
                 }
                 else if(buf== "elif")
                 {
-                    tokens.push_back({.type=token_type::elif});
+                    tokens.push_back({.type=token_type::elif , .count_line =m_count_line});
                     buf.clear();
                 }
                 else if (buf=="let")
                 {
-                    tokens.push_back({.type=token_type::let});
+                    tokens.push_back({.type=token_type::let ,.count_line = m_count_line});
                     buf.clear();
                 }
                 else if (buf=="while")
                 {
-                    tokens.push_back({.type = token_type::_while});
+                    tokens.push_back({.type = token_type::_while ,.count_line = m_count_line});
                     buf.clear();
                 }
                 else
                 {
-                    tokens.push_back({.type=token_type::ident , .value=buf});
+                    tokens.push_back({.type=token_type::ident , .value=buf ,.count_line = m_count_line});
                     buf.clear();
                 }
             }
@@ -116,7 +117,7 @@ public:
                 {
                     buf.push_back(consume());
                 }
-                tokens.push_back({.type=token_type::number , .value=buf});
+                tokens.push_back({.type=token_type::number , .value=buf , .count_line =m_count_line});
                 buf.clear();
             }
             else if (peek().value()=='/' && peek(1).has_value() && peek(1).value()=='/')
@@ -145,79 +146,84 @@ public:
             {
                 consume();
                 consume();
-                tokens.push_back({.type=token_type::d_equal});
+                tokens.push_back({.type=token_type::d_equal ,.count_line =m_count_line});
             }
             else if (peek().value()=='<' && peek(1).has_value() && peek(1).value()=='=')
             {
                 consume();
                 consume();
-                tokens.push_back({.type = token_type::e_smaller});
+                tokens.push_back({.type = token_type::e_smaller , .count_line =m_count_line});
             }
             else if (peek().value()=='>' && peek(1).has_value() && peek(1).value()=='=')
             {
                 consume();
                 consume();
-                tokens.push_back({.type = token_type::e_bigger});
+                tokens.push_back({.type = token_type::e_bigger , .count_line =m_count_line});
             }
             else if (peek().value()=='=')
             {
                 consume();
-                tokens.push_back({.type=token_type::eq});
+                tokens.push_back({.type=token_type::eq , .count_line =m_count_line});
             }
             else if (peek().value()=='-')
             {
                 consume();
-                tokens.push_back({.type =token_type::sub});
+                tokens.push_back({.type =token_type::sub , .count_line =m_count_line});
             }
             else if (peek().value()=='*')
             {
                 consume();
-                tokens.push_back({.type =token_type::star});
+                tokens.push_back({.type =token_type::star , .count_line =m_count_line});
             }
             else if (peek().value()=='/')
             {
                 consume();
-                tokens.push_back({.type =token_type::div});
+                tokens.push_back({.type =token_type::div , .count_line =m_count_line});
             }
             else if (peek().value()=='+')
             {
                 consume();
-                tokens.push_back({.type =token_type::plus});
+                tokens.push_back({.type =token_type::plus , .count_line =m_count_line});
             }
             else if (peek().value()=='(')
             {
                 consume();
-                tokens.push_back({.type=token_type::open});
+                tokens.push_back({.type=token_type::open , .count_line =m_count_line});
             }
             else if (peek().value()==')')
             {
                 consume();
-                tokens.push_back({.type=token_type::close});
+                tokens.push_back({.type=token_type::close , .count_line =m_count_line});
             }
             else if (peek().value()=='{')
             {
                 consume();
-                tokens.push_back({.type =token_type::open_curly});
+                tokens.push_back({.type =token_type::open_curly , .count_line =m_count_line});
             }
             else if (peek().value()=='}')
             {
                 consume();
-                tokens.push_back({.type=token_type::close_curly});
+                tokens.push_back({.type=token_type::close_curly , .count_line =m_count_line});
             }
             else if (peek().value()==';')
             {
                 consume();
-                tokens.push_back({.type =token_type::semi});
+                tokens.push_back({.type =token_type::semi , .count_line =m_count_line});
             }
             else if (peek().value()=='>')
             {
                 consume();
-                tokens.push_back({.type = token_type::bigger});
+                tokens.push_back({.type = token_type::bigger , .count_line =m_count_line});
             }
             else if (peek().value()=='<')
             {
                 consume();
-                tokens.push_back({.type = token_type::smaller});
+                tokens.push_back({.type = token_type::smaller , .count_line =m_count_line});
+            }
+            else if (peek().value() == '\n')
+            {
+                m_count_line++;
+                consume();
             }
 
             else if (isspace(peek().value()))
@@ -225,11 +231,15 @@ public:
                 consume();
             }
             else{
-            cerr<<"you missed up"<<endl;
+                // tokens.push_back({.type = token_type::ident , .count_line =m_count_line});
+                // cerr<<"inline :"<<m_count_line<<endl;
+                // cerr<<"you missed up ->"<<consume()<<endl;
+                // is_error=true;
+                cerr<<"you missed up"<<endl;
                 exit(EXIT_FAILURE);
             }
         }
-        return tokens;
+        return {tokens , m_count_line};
     }
 
 
@@ -258,5 +268,7 @@ private:
 
     string m_scr;
     int m_index=0;
+    size_t m_count_line=1;
+
 
 };

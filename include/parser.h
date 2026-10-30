@@ -112,8 +112,8 @@ struct node_prog
 class Parser
 {
 public:
-    Parser(vector<token>tokens)
-        :m_tokens(std::move(tokens)),  m_allocator(1024*1024*4)
+    Parser(vector<token>tokens , size_t total_count_line)
+        :m_tokens(std::move(tokens)),  m_allocator(1024*1024*4) ,m_total_count_line(total_count_line)
     {
 
     }
@@ -143,8 +143,9 @@ public:
             auto expr=parse_arithmetic_expr();
             if (!expr.has_value())
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected expression"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             if (peek().has_value() && peek().value().type==token_type::close)
             {
@@ -152,8 +153,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected ')'"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             node_grouped_expr* n_g_e =m_allocator.alloc<node_grouped_expr>();
             n_g_e->expr=expr.value();
@@ -223,8 +225,10 @@ public:
             auto rhs=parse_arithmetic_expr(precedence_value.value()+1);
             if (!rhs)
             {
-                cerr<<"expected expression aftert operator"<<endl;
-                exit(EXIT_FAILURE);
+                cerr<<"inline :"<<peek().value().count_line<<endl;
+                cerr<<"expected expression after operator"<<endl;
+                is_error=true;
+                return {};
             }
             node_bin* bin=m_allocator.alloc<node_bin>();
             node_arithmetic_expr* new_expr=m_allocator.alloc<node_arithmetic_expr>();
@@ -264,8 +268,9 @@ public:
                         break;
                     }
                 default:
+                    cerr<<"inline :"<<peek().value().count_line<<endl;
                     cerr<<"unexpected operator"<<endl;
-                    exit(EXIT_FAILURE);
+                    is_error=true;
 
             }
             new_expr->var=bin;
@@ -291,8 +296,9 @@ public:
         }
         else
         {
+            cerr<<"inline :"<<m_total_count_line<<endl;
             cerr<<"expected '}'"<<endl;
-            exit(EXIT_FAILURE);
+            is_error=true;
         }
         return scope;
     }
@@ -307,8 +313,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected '('"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             node_if_pred_else_if* n_i_f=m_allocator.alloc<node_if_pred_else_if>();
             if (auto exp =parse_bool_expr())
@@ -317,8 +324,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected expression"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             if (peek().has_value() && peek().value().type==token_type::close)
             {
@@ -326,8 +334,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected ')'"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             if (auto scope =parse_scope())
             {
@@ -335,8 +344,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected scope"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             n_i_f->pred=parse_if_pred();
             node_if_pred* pred=m_allocator.alloc<node_if_pred>();
@@ -353,8 +363,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected scope"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             node_if_pred* pred=m_allocator.alloc<node_if_pred>();
             pred->var=_else;
@@ -378,8 +389,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected expression"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             if (peek().has_value() && peek().value().type==token_type::semi)
             {
@@ -387,8 +399,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line-1<<endl;
                 cerr<<"expected ';'"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             node_st* st=m_allocator.alloc<node_st>();
             st->var=_return;
@@ -408,8 +421,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected expression"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             if (peek().has_value() && peek().value().type==token_type::semi)
             {
@@ -417,8 +431,9 @@ public:
             }
             else
             {
+                cerr<<"inline "<<peek().value().count_line-1<<endl;
                 cerr<<"expected ';'";
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             node_st* st=m_allocator.alloc<node_st>();
             st->var=let;
@@ -436,8 +451,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected expression"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             if (peek().has_value() && peek().value().type==token_type::semi)
             {
@@ -445,8 +461,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line-1<<endl;
                 cerr<<"expected ';'"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             node_st* st =m_allocator.alloc<node_st>();
             st->var=assignment;
@@ -462,8 +479,9 @@ public:
             }
             else
             {
-                cerr<<"invalid scope"<<endl;
-                exit(EXIT_FAILURE);
+                cerr<<"inline :"<<peek().value().count_line<<endl;
+                cerr<<"expected scope"<<endl;
+                is_error=true;
             }
             return st;
 
@@ -477,8 +495,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected '('"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             node_if* _if=m_allocator.alloc<node_if>();
             if (auto exp=parse_bool_expr())
@@ -487,8 +506,9 @@ public:
             }
             else
             {
-                cerr<<"expected exoression"<<endl;
-                exit(EXIT_FAILURE);
+                cerr<<"inline :"<<peek().value().count_line<<endl;
+                cerr<<"expected expression"<<endl;
+                is_error=true;
             }
             if (peek().has_value() && peek().value().type==token_type::close)
             {
@@ -496,8 +516,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected ')'"<<endl;
-                exit (EXIT_FAILURE);
+                is_error=true;
             }
             auto scope =parse_scope();
             if (scope)
@@ -506,8 +527,9 @@ public:
             }
             else
             {
-                cerr<<"invalid scope"<<endl;
-                exit(EXIT_FAILURE);
+                cerr<<"inline :"<<peek().value().count_line<<endl;
+                cerr<<"expected scope"<<endl;
+                is_error=true;
             }
             _if->pred=parse_if_pred();
             node_st* st=m_allocator.alloc<node_st>();
@@ -523,8 +545,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected '('"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             node_while* _while=m_allocator.alloc<node_while>();
             if (auto expr =parse_bool_expr())
@@ -533,8 +556,9 @@ public:
             }
             else
             {
-                cerr<<"invalid expr"<<endl;
-                exit(EXIT_FAILURE);
+                cerr<<"inline :"<<peek().value().count_line<<endl;
+                cerr<<"expected expression"<<endl;
+                is_error=true;
             }
             if (peek().has_value() && peek().value().type==token_type::close)
             {
@@ -542,8 +566,9 @@ public:
             }
             else
             {
-                cerr<<"expexted ')'"<<endl;
-                exit(EXIT_FAILURE);
+                cerr<<"inline :"<<peek().value().count_line<<endl;
+                cerr<<"expected ')'"<<endl;
+                is_error=true;
             }
             if (auto scope =parse_scope())
             {
@@ -551,8 +576,9 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
                 cerr<<"expected scope"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
             node_st* st =m_allocator.alloc<node_st>();
             st->var=_while;
@@ -576,10 +602,16 @@ public:
             }
             else
             {
+                cerr<<"inline :"<<consume().count_line<<endl;
                 cerr<<"invalid statment"<<endl;
-                exit(EXIT_FAILURE);
+                is_error=true;
             }
         }
+        if (is_error)
+        {
+            exit(EXIT_FAILURE);
+        }
+
         return prog;
     }
 private:
@@ -604,6 +636,8 @@ private:
     vector<token>m_tokens;
     Arena_allocator m_allocator;
     size_t m_index=0;
+    bool is_error=false;
+    size_t m_total_count_line;
 
 };
 

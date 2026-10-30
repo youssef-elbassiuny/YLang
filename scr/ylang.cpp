@@ -22,12 +22,12 @@ int main(int argc , char *argv[])
         content = content_stream.str();
     }
     Tokenizer tokenizer(content);
-    vector<token>v= tokenizer.tokenize();
-    for (const auto& i: v)
-    {
-        cout<<int(i.type)<<endl;
-    }
-    Parser parser(v);
+    pair<vector<token> , size_t>v= tokenizer.tokenize();
+    // for (const auto& i: v.first)
+    // {
+    //     cout<<int(i.type)<<endl;
+    // }
+    Parser parser(v.first , v.second);
     optional<node_prog*>AST=parser.parse_prog();
     Generator generator(AST.value());
     {
