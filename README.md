@@ -106,6 +106,20 @@ The compiler currently supports:
 - `return`
 - LLVM IR code generation
 
+## Error Handling
+
+YLang includes basic error handling to detect invalid source code during compilation.
+
+The compiler reports errors with their corresponding line numbers to help identify and debug issues.
+
+Current error handling includes:
+
+- **Tokenizer errors:** Detecting invalid or unrecognized characters.
+- **Parser errors:** Detecting syntax errors such as missing expressions, missing semicolons, missing closing braces, and invalid statements.
+- **Error reporting:** Displaying error messages along with line numbers.
+
+
+
 ## Compiler Pipeline
 
 The compiler works through several stages:
