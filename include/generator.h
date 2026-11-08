@@ -9,6 +9,7 @@
 #include <llvm/Support/FileSystem.h>
 #include<map>
 #include "parser.h"
+#include <string>
 class Generator
 {
 public:
@@ -71,13 +72,32 @@ public:
     }
     llvm::Value* gen_term(node_term* term)
     {
-        if (holds_alternative<node_ident*>(term->var))
+        if (holds_alternative<node_call_fun*>(term->var))
+        {
+            std::vector<llvm::Value*>params;
+            node_call_fun* call_fun=get<node_call_fun*>(term->var);
+            for (int i=0 ; i<call_fun->param.size() ;++i)
+            {
+                params.push_back(gen_arithmetic_exp(call_fun->param[i]));
+            }
+            std::size_t code=0;
+            for (int i=0 ; i<m_fun_code.size() ;++i)
+            {
+                if (m_fun_code[i].first==call_fun->ident.value.value())
+                {
+                    code=m_fun_code[i].second;
+                }
+            }
+            llvm::Value* call=builder->CreateCall( m_fun[code] , params , "call");
+            return call;
+        }
+        else if (holds_alternative<node_ident*>(term->var))
         {
             node_ident* ident=get<node_ident*>(term->var);
             auto it =m_variable.find(ident->ident.value.value());
             if (it==m_variable.end())
             {
-                cerr<<"undeclared identifier"<<ident->ident.value.value()<<endl;
+                cerr<<"undeclared identifier"<<" "<<ident->ident.value.value()<<endl;
                 exit(EXIT_FAILURE);
             }
             llvm::Type *Int=llvm::Type::getInt32Ty(*context);
@@ -98,6 +118,8 @@ public:
             node_grouped_expr* grouped =get<node_grouped_expr*>(term->var);
             return gen_arithmetic_exp(grouped->expr);
         }
+
+
         return nullptr;
     }
 
@@ -251,7 +273,7 @@ public:
 
             if (it==m_variable.end())
             {
-                cerr<<"undeclared identifier"<<assignment->ident.value.value()<<endl;
+                cerr<<"undeclared identefir"<<assignment->ident.value.value()<<endl;
                 exit(EXIT_FAILURE);
             }
             llvm::Value* value =gen_arithmetic_exp(assignment->expr);
@@ -341,7 +363,59 @@ public:
             builder->SetInsertPoint(exitBlock);
 
         }
+        else if (holds_alternative<node_fun*>(st->var))
+        {
+            node_fun* fun=get<node_fun*>(st->var);
+            llvm::Type *Int=llvm::Type::getInt32Ty(*context);
+            vector<llvm::Type*>param_types;
+            for (auto type:fun->param)
+            {
+                param_types.push_back(Int);
+            }
+            llvm::FunctionType* function_type =
+            llvm::FunctionType::get(
+                Int,
+                param_types,
+                false
+            );
+            llvm::Function* function =
+                llvm::Function::Create(
+                    function_type,
+                    llvm::Function::ExternalLinkage,
+                    fun->ident.value.value(),
+                    *module
+                );
 
+            auto old_insert_point = builder->saveIP();
+            llvm::BasicBlock* function_entry =
+                llvm::BasicBlock::Create(*context, "entry", function);
+            builder->SetInsertPoint(function_entry);
+            scope_begin();
+            auto arg = function->arg_begin();
+            for (int i=0; i<fun->param.size() ;++i)
+            {
+                llvm::Value* argument = &*arg++;
+                argument->setName(fun->param[i].value.value());
+                llvm::AllocaInst* variable =
+                builder->CreateAlloca(Int, nullptr, fun->param[i].value.value());
+
+                builder->CreateStore(argument, variable);
+
+                //define_variable(fun->param[i].value.value()+to_string(i), variable);
+                if (!define_variable(fun->param[i].value.value(), variable))
+                {
+                    cerr << "parameter already declared: " << fun->param[i].value.value()<< endl;
+                    exit(EXIT_FAILURE);
+                }
+            }
+
+            gen_scope(fun->scope);
+            scope_end();
+            builder->restoreIP(old_insert_point);
+            m_fun[m_count_fun]=function;
+            m_fun_code.push_back({fun->ident.value.value() , m_count_fun});
+            m_count_fun++;
+        }
     }
 
     void gen()
@@ -431,5 +505,8 @@ private:
     std::unique_ptr<llvm::IRBuilder<>>builder;
     std::map<std::string,llvm::Value* >m_variable;
     llvm::Function *main_function;
+    vector<std::pair<std::string , std::size_t>>m_fun_code;
+    map< std::size_t, llvm::Function*>m_fun;
+    std::size_t m_count_fun=0;
 
 };

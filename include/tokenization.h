@@ -28,8 +28,9 @@ enum class token_type
     e_bigger,
     e_smaller,
     d_equal,
-
-
+    comma,
+    fun,
+    fun_call
 };
 
 struct token
@@ -103,6 +104,11 @@ public:
                 {
                     tokens.push_back({.type = token_type::_while ,.count_line = m_count_line});
                     buf.clear();
+                }
+                else if (buf == "fn")
+                {
+                    tokens.push_back({.type = token_type::fun ,.count_line = m_count_line});
+                    buf .clear();
                 }
                 else
                 {
@@ -219,6 +225,11 @@ public:
             {
                 consume();
                 tokens.push_back({.type = token_type::smaller , .count_line =m_count_line});
+            }
+            else if (peek().value()==',')
+            {
+                consume();
+                tokens.push_back({.type = token_type::comma , .count_line = m_count_line});
             }
             else if (peek().value() == '\n')
             {

@@ -42,9 +42,14 @@ struct node_bin
 {
     variant<node_bin_expr_add* , node_bin_expr_div* , node_bin_expr_mult* , node_bin_expr_sub*>var;
 };
+struct node_call_fun
+{
+    token ident;
+    vector<node_arithmetic_expr*>param;
+};
 struct node_term
 {
-    variant<node_ident* , node_number* , node_grouped_expr*>var;
+    variant<node_ident* , node_number* , node_grouped_expr* ,node_call_fun*>var;
 };
 struct node_arithmetic_expr
 {
@@ -101,9 +106,23 @@ struct node_while
     node_bool_expr* expr;
     node_scope* scope;
 };
+struct node_fun
+{
+    token ident;
+    vector<token>param;
+    node_scope* scope;
+};
 struct node_st
 {
-    variant<node_let* , node_assignment* ,  node_if* , node_scope* , node_return* , node_while*>var;
+    variant<
+        node_let*,
+        node_assignment*,
+        node_if*,
+        node_scope*,
+        node_return*,
+        node_while*,
+        node_fun*
+            >var;
 };
 struct node_prog
 {
@@ -126,15 +145,6 @@ public:
 
             node_term* term=m_allocator.alloc<node_term>();
             term->var=n_n;
-            return term;
-        }
-        else if (peek().has_value() && peek().value().type==token_type::ident)
-        {
-            node_ident* n_i=m_allocator.alloc<node_ident>();
-            n_i->ident=consume();
-
-            node_term* term=m_allocator.alloc<node_term>();
-            term->var=n_i;
             return term;
         }
         else if (peek().has_value() && peek().value().type==token_type::open)
@@ -164,12 +174,75 @@ public:
             term->var=n_g_e;
             return term;
         }
+        else if (peek().has_value() && peek().value().type==token_type::ident
+            && peek(1).has_value() && peek(1).value().type==token_type::open)
+        {
+            node_call_fun* n_c_f=m_allocator.alloc<node_call_fun>();
+            n_c_f->ident=consume();
+            consume();
+            if (auto exp =parse_arithmetic_expr())
+            {
+                n_c_f->param.push_back(exp.value());
+                if (peek().has_value() && peek().value().type==token_type::close)
+                {
+                    consume();
+                }
+                else if(peek().has_value() && peek().value().type==token_type::comma)
+                {
+                    while (peek().has_value() && peek().value().type==token_type::comma)
+                    {
+                        consume();
+                        if (auto exp =parse_arithmetic_expr())
+                        {
+                            n_c_f->param.push_back(exp.value());
+                        }
+                        else
+                        {
+                            cerr<<"inline :"<<peek().value().count_line<<endl;
+                            cerr<<"expected param"<<endl;
+                            is_error=true;
+                        }
+                    }
+                    if (peek().has_value() && peek().value().type==token_type::close)
+                    {
+                        consume();
+                    }
+                    else
+                    {
+                        cerr<<"inline :"<<peek().value().count_line<<endl;
+                        cerr<<"expected )"<<endl;
+                        is_error=true;
+                    }
+                }
+                else
+                {
+                    cerr<<"inline :"<<peek().value().count_line<<endl;
+                    cerr<<"expected ( or param"<<endl;
+                    is_error=true;
+                }
+            }
+            else if (peek().has_value() && peek().value().type==token_type::close)
+            {
+                consume();
+            }
+            node_term* n_t=m_allocator.alloc<node_term>();
+            n_t->var=n_c_f;
+            return n_t;
+        }
+        else if (peek().has_value() && peek().value().type==token_type::ident)
+        {
+            node_ident* n_i=m_allocator.alloc<node_ident>();
+            n_i->ident=consume();
+
+            node_term* term=m_allocator.alloc<node_term>();
+            term->var=n_i;
+            return term;
+        }
         else
         {
             return{};
         }
     }
-
     optional<node_bool_expr*>parse_bool_expr()
     {
         node_bool_expr* exp=m_allocator.alloc<node_bool_expr>();
@@ -584,6 +657,82 @@ public:
             st->var=_while;
             return st;
 
+        }
+        else if (peek().has_value() && peek().value().type==token_type::fun)
+        {
+            consume();
+            auto n_f=m_allocator.alloc<node_fun>();
+            n_f->ident=consume();
+            if (peek().has_value() && peek().value().type==token_type::open)
+            {
+                consume();
+            }
+            else
+            {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
+                cerr<<"expected ("<<endl;
+                is_error=true;
+            }
+            if (peek().has_value() && peek().value().type==token_type::ident)
+            {
+                n_f->param.push_back(consume());
+                if (peek().has_value() && peek().value().type==token_type::close)
+                {
+                    consume();
+                }
+                else if(peek().has_value() && peek().value().type==token_type::comma)
+                {
+                    while (peek().has_value() && peek().value().type==token_type::comma)
+                    {
+                        consume();
+                        if (peek().has_value() && peek().value().type==token_type::ident)
+                        {
+                            n_f->param.push_back(consume());
+                        }
+                        else
+                        {
+                            cerr<<"inline :"<<peek().value().count_line<<endl;
+                            cerr<<"expected param"<<endl;
+                            is_error=true;
+                        }
+
+                    }
+                    if (peek().has_value() && peek().value().type==token_type::close)
+                    {
+                        consume();
+                    }
+                    else
+                    {
+                        cerr<<"inline :"<<peek().value().count_line<<endl;
+                        cerr<<"expected )"<<endl;
+                        is_error=true;
+                    }
+                }
+                else
+                {
+                    cerr<<"inline :"<<peek().value().count_line<<endl;
+                    cerr<<"expected ( or param"<<endl;
+                    is_error=true;
+                }
+
+            }
+            else if (peek().has_value() && peek().value().type==token_type::close)
+            {
+                consume();
+            }
+            if (auto scope =parse_scope())
+            {
+                n_f->scope=scope.value();
+            }
+            else
+            {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
+                cerr<<"expected scope"<<endl;
+                is_error=true;
+            }
+            node_st* n_s=m_allocator.alloc<node_st>();
+            n_s->var=n_f;
+            return n_s;
         }
         else
         {
