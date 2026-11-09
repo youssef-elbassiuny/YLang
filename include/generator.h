@@ -23,14 +23,21 @@ public:
 
 
 
-    void gen_scope(node_scope* scope)
+    bool gen_scope(node_scope* scope)
     {
         scope_begin();
+        bool reachable = true;
         for (node_st* st :scope->stmt)
         {
-            gen_st(st);
+            if (!reachable)
+            {
+                break;
+            }
+
+            reachable = gen_st(st);
         }
         scope_end();
+        return reachable;
     }
     llvm::Value* gen_bin(node_bin* bin)
     {
@@ -181,36 +188,45 @@ public:
         }
         return nullptr;
     }
-    void gen_if_pred(node_if_pred* pred ,llvm::BasicBlock* merge)
+    bool gen_if_pred(node_if_pred* pred ,llvm::BasicBlock* merge)
     {
         if (holds_alternative<node_if_pred_else_if*>(pred->var))
         {
             node_if_pred_else_if* else_if=get<node_if_pred_else_if*>(pred->var);
             llvm::Value* condition= gen_bool_exp(else_if->expr);
+            llvm::Function* current_function =builder->GetInsertBlock()->getParent();
             llvm::BasicBlock *then=llvm::BasicBlock::Create(
                 *context ,
                 "then" ,
-                main_function
+                current_function
                 );
-            llvm::BasicBlock *pred=llvm::BasicBlock::Create(
+            llvm::BasicBlock *pred_block=llvm::BasicBlock::Create(
                 *context ,
                 "pred" ,
-                main_function
+                current_function
                 );
             if (else_if->pred)
             {
                 builder->CreateCondBr(
                     condition,
                     then,
-                    pred
+                    pred_block
                 );
                 builder->SetInsertPoint(then);
                 gen_scope(else_if->scope);
-                builder->CreateBr(merge);
-                builder->SetInsertPoint(pred);
+                bool then_reachable = !builder->GetInsertBlock()->getTerminator();
 
-                gen_if_pred(else_if->pred.value() , merge);
+                if (then_reachable)
+                {
+                    builder->CreateBr(merge);
+                }
 
+                builder->SetInsertPoint(pred_block);
+
+                bool pred_reachable =
+                    gen_if_pred(else_if->pred.value(), merge);
+
+                return then_reachable || pred_reachable;
             }
             else
             {
@@ -221,30 +237,47 @@ public:
                );
                 builder->SetInsertPoint(then);
                 gen_scope(else_if->scope);
-                builder->CreateBr(merge);
+                bool then_reachable =
+                 !builder->GetInsertBlock()->getTerminator();
+
+                if (then_reachable)
+                {
+                    builder->CreateBr(merge);
+                }
+
+
+                return true;
             }
         }
         else if (holds_alternative<node_if_pred_else*>(pred->var))
         {
             node_if_pred_else* _else=get<node_if_pred_else*>(pred->var);
             gen_scope(_else->scope);
-            builder->CreateBr(merge);
-        }
+            bool then_reachable = !builder->GetInsertBlock()->getTerminator();
 
+            if (then_reachable)
+            {
+                builder->CreateBr(merge);
+            }
+            return then_reachable;
+
+        }
+        return false;
     }
 
-    void gen_st(node_st* st)
+    bool gen_st(node_st* st)
     {
         if (holds_alternative<node_return*>(st->var))
         {
             node_return* _return=get<node_return*>(st->var);
             llvm::Value* exp =gen_arithmetic_exp(_return->expr);
             builder->CreateRet(exp);
+            return false;
         }
         else if (holds_alternative<node_scope*>(st->var))
         {
             node_scope* scope=get<node_scope*>(st->var);
-            gen_scope(scope);
+            return gen_scope(scope);
         }
         else if (holds_alternative<node_let*>(st->var))
         {
@@ -265,6 +298,7 @@ public:
                 cerr<<"variable already declared: "<<name<<endl;
                 exit(EXIT_FAILURE);
             }
+            return true;
         }
         else if (holds_alternative<node_assignment*>(st->var))
         {
@@ -278,33 +312,45 @@ public:
             }
             llvm::Value* value =gen_arithmetic_exp(assignment->expr);
             builder->CreateStore(value, it->second);
+            return true;
         }
         else if (holds_alternative<node_if*>(st->var))
         {
             node_if* _if=get<node_if*>(st->var);
             llvm::Value *condition=gen_bool_exp(_if->expr);
-
-            llvm::BasicBlock *then=llvm::BasicBlock::Create(*context , "then" , main_function);
-            llvm::BasicBlock *merge=llvm::BasicBlock::Create(*context ,"merge" ,main_function);
+            llvm::Function* current_function =builder->GetInsertBlock()->getParent();
+            llvm::BasicBlock *then=llvm::BasicBlock::Create(*context , "then" , current_function);
+            llvm::BasicBlock *merge=llvm::BasicBlock::Create(*context ,"merge" ,current_function);
 
             if (_if->pred)
             {
-                llvm::BasicBlock *pred=llvm::BasicBlock::Create(*context ,"pred" ,main_function);
+                llvm::BasicBlock *pred=llvm::BasicBlock::Create(*context ,"pred" ,current_function);
                 builder->CreateCondBr(
                     condition,
                     then,
                     pred
                 );
                 builder->SetInsertPoint(then);
-                gen_scope(_if->scope);
-                if (!builder->GetInsertBlock()->getTerminator())
+                bool then_reachable = gen_scope(_if->scope);
+
+                if (then_reachable)
                 {
                     builder->CreateBr(merge);
                 }
+
                 builder->SetInsertPoint(pred);
 
-                gen_if_pred(_if->pred.value() , merge);
-                builder->SetInsertPoint(merge);
+                bool pred_reachable =
+                    gen_if_pred(_if->pred.value(), merge);
+
+                if (then_reachable || pred_reachable)
+                {
+                    builder->SetInsertPoint(merge);
+                    return true;
+                }
+
+                merge->eraseFromParent();
+                return false;
 
             }
             else
@@ -315,37 +361,41 @@ public:
                    merge
                );
                 builder->SetInsertPoint(then);
-                gen_scope(_if->scope);
-                if (!builder->GetInsertBlock()->getTerminator())
+                bool then_reachable = gen_scope(_if->scope);
+
+                if (then_reachable)
                 {
                     builder->CreateBr(merge);
                 }
+
                 builder->SetInsertPoint(merge);
+                return true;
 
             }
         }
         else if (holds_alternative<node_while*>(st->var))
         {
             node_while* _while=get<node_while*>(st->var);
+            llvm::Function* current_function =builder->GetInsertBlock()->getParent();
             llvm::BasicBlock *conditionBlock =
             llvm::BasicBlock::Create(
                 *context,
                 "loop.cond",
-                main_function
+                current_function
                 );
 
             llvm::BasicBlock *bodyBlock =
                 llvm::BasicBlock::Create(
                     *context,
                     "loop.body",
-                    main_function
+                    current_function
                     );
 
             llvm::BasicBlock *exitBlock =
                 llvm::BasicBlock::Create(
                     *context,
                     "loop.exit",
-                    main_function
+                    current_function
                     );
             builder->CreateBr(conditionBlock);
             builder->SetInsertPoint(conditionBlock);
@@ -356,11 +406,14 @@ public:
                 exitBlock
                 );
             builder->SetInsertPoint(bodyBlock);
-            gen_scope(_while->scope);
-            if (!builder->GetInsertBlock()->getTerminator()) {
+            bool body_reachable = gen_scope(_while->scope);
+
+            if (body_reachable)
+            {
                 builder->CreateBr(conditionBlock);
             }
             builder->SetInsertPoint(exitBlock);
+            return true;
 
         }
         else if (holds_alternative<node_fun*>(st->var))
@@ -401,7 +454,6 @@ public:
 
                 builder->CreateStore(argument, variable);
 
-                //define_variable(fun->param[i].value.value()+to_string(i), variable);
                 if (!define_variable(fun->param[i].value.value(), variable))
                 {
                     cerr << "parameter already declared: " << fun->param[i].value.value()<< endl;
@@ -409,13 +461,21 @@ public:
                 }
             }
 
-            gen_scope(fun->scope);
+            bool function_reachable = gen_scope(fun->scope);
             scope_end();
+            if (function_reachable)
+            {
+                cerr << "not all paths return a value in function: "
+                     << fun->ident.value.value() << endl;
+                exit(EXIT_FAILURE);
+            }
             builder->restoreIP(old_insert_point);
             m_fun[m_count_fun]=function;
             m_fun_code.push_back({fun->ident.value.value() , m_count_fun});
             m_count_fun++;
+            return true;
         }
+        return false;
     }
 
     void gen()

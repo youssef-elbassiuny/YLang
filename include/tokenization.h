@@ -242,11 +242,8 @@ public:
                 consume();
             }
             else{
-                // tokens.push_back({.type = token_type::ident , .count_line =m_count_line});
-                // cerr<<"inline :"<<m_count_line<<endl;
-                // cerr<<"you missed up ->"<<consume()<<endl;
-                // is_error=true;
-                cerr<<"you missed up"<<endl;
+                cerr << "you missed up -> " << consume() << endl;
+                cerr << "line: " << m_count_line << endl;
                 exit(EXIT_FAILURE);
             }
         }

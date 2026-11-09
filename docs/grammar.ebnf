@@ -1,0 +1,93 @@
+
+(* ================================= *)
+(*          YLang Grammar            *)
+(* ================================= *)
+
+(* Program *)
+
+parse_prog = { node_st } ;
+
+(* Statements *)
+
+node_st = node_return
+        | node_let
+        | node_assignment
+        | node_if
+        | node_scope
+        | node_while
+        | node_fun ;
+
+(* Return *)
+
+node_return = "_return", parse_arithmetic_expr, "semi" ;
+
+(* Variable Declaration *)
+
+node_let = "let", "ident", "eq",
+           parse_arithmetic_expr, "semi" ;
+
+(* Variable Assignment *)
+
+node_assignment = "ident", "eq",
+                  parse_arithmetic_expr, "semi" ;
+
+(* Scope *)
+
+node_scope = "open_curly", { node_st }, "close_curly" ;
+
+(* If / Elif / Else *)
+
+node_if = "_if", "open", parse_bool_expr, "close",
+          node_scope, [ node_if_pred ] ;
+
+node_if_pred = node_if_pred_else_if
+             | node_if_pred_else ;
+
+node_if_pred_else_if = "elif", "open", parse_bool_expr, "close",
+                       node_scope, [ node_if_pred ] ;
+
+node_if_pred_else = "_else", node_scope ;
+
+(* While *)
+
+node_while = "_while", "open", parse_bool_expr, "close",
+             node_scope ;
+
+(* Functions *)
+
+node_fun = "fun", "ident", "open",
+           [ "ident", { "comma", "ident" } ],
+           "close", node_scope ;
+
+(* Function Calls *)
+
+node_call_fun = "ident", "open",
+                [ parse_arithmetic_expr,
+                  { "comma", parse_arithmetic_expr } ],
+                "close" ;
+
+(* Boolean Expressions *)
+
+parse_bool_expr = parse_arithmetic_expr,
+                  [ ( "bigger"
+                    | "smaller"
+                    | "e_bigger"
+                    | "e_smaller"
+                    | "d_equal" ),
+                    parse_arithmetic_expr ] ;
+
+(* Arithmetic Expressions *)
+
+parse_arithmetic_expr = parse_term,
+                        { ( "plus"
+                          | "sub"
+                          | "star"
+                          | "div" ),
+                          parse_term } ;
+
+(* Terms *)
+
+parse_term = "number"
+           | "ident"
+           | ( "open", parse_arithmetic_expr, "close" )
+           | node_call_fun ;
