@@ -17,8 +17,15 @@ Before using the compiler, make sure you have the following installed:
 First, clone the repository:
 
 ```bash
-git clone https://github.com/youssef-elbassiuny/comp.git
-cd comp
+git clone https://github.com/youssef-elbassiuny/YLang.git
+cd YLang
+```
+
+Create and enter the build directory:
+
+```bash
+mkdir build
+cd build
 ```
 
 ## Complete Workflow
@@ -38,18 +45,18 @@ echo $?
 Example source code:
 
 ```cpp
-let x = 10;
-let i = 0;
-
-while (i < 5)
+fn add(a, b)
 {
-    x = x + 1;
-    i = i + 1;
+    return a + b;
 }
 
-if (x == 15)
+let x = 10;
+let y = 5;
+
+let result = add(x, y);
+
+if (result == 15)
 {
-    let result = x / 3;
     return result;
 }
 else
@@ -84,26 +91,31 @@ The compiler currently supports:
 
 - Variables
 - Variable assignment
-- Arithmetic expressions
-- Addition (`+`)
-- Subtraction (`-`)
-- Multiplication (`*`)
-- Division (`/`)
+- Arithmetic expressions:
+  - Addition (`+`)
+  - Subtraction (`-`)
+  - Multiplication (`*`)
+  - Division (`/`)
 - Parenthesized expressions
 - Boolean expressions
 - Comparison operators:
-    - Less than (`<`)
-    - Greater than (`>`)
-    - Less than or equal to (`<=`)
-    - Greater than or equal to (`>=`)
-    - Equality (`==`)
+  - Less than (`<`)
+  - Greater than (`>`)
+  - Less than or equal to (`<=`)
+  - Greater than or equal to (`>=`)
+  - Equality (`==`)
 - Conditional statements:
-    - `if`
-    - `elif`
-    - `else`
+  - `if`
+  - `elif`
+  - `else`
 - `while` loops
 - Nested scopes
-- `return`
+- Functions:
+  - Function definitions
+  - Function parameters
+  - Function calls
+  - Return values
+- `return` statements
 - LLVM IR code generation
 
 ## Error Handling
@@ -118,7 +130,10 @@ Current error handling includes:
 - **Parser errors:** Detecting syntax errors such as missing expressions, missing semicolons, missing closing braces, and invalid statements.
 - **Error reporting:** Displaying error messages along with line numbers.
 
+## Current Limitations
 
+- `while` and `if-else` statements are not fully supported inside functions yet.
+- The compiler is still under development, and some language features may have limitations.
 
 ## Compiler Pipeline
 
@@ -126,52 +141,40 @@ The compiler works through several stages:
 
 ```text
 Source Code
-     |
-     v
+    |
+    v
 Tokenizer
-     |
-     v
+    |
+    v
 Tokens
-     |
-     v
+    |
+    v
 Parser
-     |
-     v
+    |
+    v
 AST (Abstract Syntax Tree)
-     |
-     v
+    |
+    v
 Code Generator
-     |
-     v
+    |
+    v
 LLVM IR
-     |
-     v
+    |
+    v
 LLVM Interpreter (lli)
-     |
-     v
+    |
+    v
 Program Exit Code
 ```
 
 ## Project Structure
 
 ```text
-comp/
+YLang/
+├── docs/
+│   └── grammar.ebnf
 ├── include/
 ├── scr/
 ├── test/
 ├── CMakeLists.txt
 └── README.md
-```
-
-## Technologies
-
-- C++
-- CMake
-- LLVM
-- LLVM IR
-- Linux
-- Git
-
-## Status
-
-This project is currently under development.
