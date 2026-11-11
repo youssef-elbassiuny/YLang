@@ -8,9 +8,12 @@ fn check(x) {
     if (x > 0) {
         return 1;
     }
-    else {
+    elif(x<0){
         return 0;
     }
+
+    return 0;
+
 }
 
 // 3. Function with if and return after it

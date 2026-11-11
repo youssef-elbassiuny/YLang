@@ -200,13 +200,14 @@ public:
                 "then" ,
                 current_function
                 );
-            llvm::BasicBlock *pred_block=llvm::BasicBlock::Create(
+
+            if (else_if->pred)
+            {
+                llvm::BasicBlock *pred_block=llvm::BasicBlock::Create(
                 *context ,
                 "pred" ,
                 current_function
                 );
-            if (else_if->pred)
-            {
                 builder->CreateCondBr(
                     condition,
                     then,
