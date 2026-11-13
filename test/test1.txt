@@ -1,87 +1,148 @@
-// 1. Simple function
+
+// =====================================
+// 1. Variables and constants
+// =====================================
+
+let x = 10;
+let y = 20;
+
+const let limit = 100;
+const let multiplier = 2;
+
+// Arithmetic expressions
+let sum = x + y;
+let difference = y - x;
+let product = x * y;
+let division = y / x;
+
+let result = (x + y) * multiplier;
+
+
+// =====================================
+// 2. Assignments
+// =====================================
+
+x = 15;
+y = x + 5;
+
+
+// =====================================
+// 3. Functions
+// =====================================
+
 fn add(a, b) {
     return a + b;
 }
 
-// 2. Function with if/else
-fn check(x) {
-    if (x > 0) {
-        return 1;
-    }
-    elif(x<0){
-        return 0;
-    }
-
-    return 0;
-
+fn calculate(a, const b) {
+    let result = a * b;
+    return result;
 }
 
-// 3. Function with if and return after it
-fn absolute(x) {
-    if (x < 0) {
-        return 0 - x;
-    }
-
-    return x;
+fn getValue(const value) {
+    return value + 10;
 }
 
-// 4. Function with elif and else
-fn classify(x) {
-    if (x > 0) {
-        return 1;
-    }
-    elif (x < 0) {
-        return 2;
+let first = add(10, 20);
+let second = calculate(5, 4);
+let third = getValue(30);
+
+
+// =====================================
+// 4. Nested scopes and shadowing
+// =====================================
+
+let number = 10;
+
+{
+    let number = 20;
+    number = 30;
+
+    let inside = number + 5;
+}
+
+let afterScope = number;
+
+
+// =====================================
+// 5. If / Elif / Else
+// =====================================
+
+let score = 75;
+let grade = 0;
+
+if (score >= 90) {
+    grade = 1;
+}
+elif (score >= 70) {
+    grade = 2;
+}
+else {
+    grade = 3;
+}
+
+
+// =====================================
+// 6. Nested if statements
+// =====================================
+
+let a = 10;
+let b = 20;
+let status = 0;
+
+if (a < b) {
+    if (b > 15) {
+        status = 1;
     }
     else {
-        return 3;
+        status = 2;
     }
 }
+else {
+    status = 3;
+}
 
-// 5. Function with nested if
-fn nested(x) {
-    if (x > 0) {
-        if (x > 10) {
-            return 2;
-        }
-        else {
-            return 1;
-        }
+
+// =====================================
+// 7. While loop
+// =====================================
+
+let i = 0;
+let total = 0;
+
+while (i < 5) {
+    total = total + i;
+    i = i + 1;
+}
+
+
+// =====================================
+// 8. Function calls inside expressions
+// =====================================
+
+let functionResult = add(5, 10) + calculate(2, 3);
+
+
+// =====================================
+// 9. Function with local scope
+// =====================================
+
+fn testScope(const value) {
+    let temp = value + 5;
+
+    if (temp > 10) {
+        return temp;
     }
     else {
-        return 0;
-    }
-}
-
-// 6. Function with while
-fn countdown(x) {
-    while (x > 0) {
-        x = x - 1;
-    }
-
-    return x;
-}
-
-// 7. Function where all branches return
-fn all(x) {
-    if (x > 0) {
         return 10;
     }
-    elif (x < 0) {
-        return 20;
-    }
-    else {
-        return 30;
-    }
 }
 
-// 8. Main program
-let a = add(5, 3);
-let b = check(5);
-let c = absolute(0 - 7);
-let d = classify(0);
-let e = nested(15);
-let f = countdown(5);
-let g = all(1);
+let scopeResult = testScope(20);
 
-return a + b + c + d + e + f + g;
+
+// =====================================
+// 10. Final result
+// =====================================
+
+return total;

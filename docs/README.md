@@ -35,8 +35,8 @@ The complete workflow from the `build` directory is:
 ```bash
 cmake -G "Unix Makefiles" ..
 cmake --build .
-./main ../test/test1.txt
-lli output.ll
+./ylang ../test/test1.txt
+lli ylang.ll
 echo $?
 ```
 
@@ -45,22 +45,19 @@ echo $?
 Example source code:
 
 ```cpp
-fn add(a, b)
-{
+fun add(a, b) {
     return a + b;
 }
 
 let x = 10;
-let y = 5;
+const y = 5;
 
 let result = add(x, y);
 
-if (result == 15)
-{
+if (result == 15) {
     return result;
 }
-else
-{
+else {
     return 0;
 }
 ```
@@ -68,15 +65,15 @@ else
 Save the program as a `.txt` file and pass it to the compiler:
 
 ```bash
-./main ../test/test1.txt
+./ylang ../test/test1.txt
 ```
 
-The compiler generates an LLVM IR file named `output.ll`.
+The compiler generates an LLVM IR file named `ylang.ll`.
 
 Run the generated LLVM IR using LLVM's interpreter:
 
 ```bash
-lli output.ll
+lli ylang.ll
 ```
 
 And check the return value:
@@ -89,8 +86,14 @@ echo $?
 
 The compiler currently supports:
 
-- Variables
-- Variable assignment
+- Variables and constants:
+  - Variable declarations using `let`
+  - Constant declarations using `const let`
+  - Variable assignment
+  - Constant protection (constants cannot be reassigned)
+- Function parameters:
+  - Regular parameters
+  - Constant parameters using `const`
 - Arithmetic expressions:
   - Addition (`+`)
   - Subtraction (`-`)
@@ -109,7 +112,7 @@ The compiler currently supports:
   - `elif`
   - `else`
 - `while` loops
-- Nested scopes
+- Nested scopes and variable shadowing
 - Functions:
   - Function definitions
   - Function parameters
@@ -129,6 +132,7 @@ Current error handling includes:
 - **Tokenizer errors:** Detecting invalid or unrecognized characters.
 - **Parser errors:** Detecting syntax errors such as missing expressions, missing semicolons, missing closing braces, and invalid statements.
 - **Error reporting:** Displaying error messages along with line numbers.
+- **Constant protection:** Detecting attempts to reassign constants.
 
 ## Current Limitations
 
@@ -178,3 +182,4 @@ YLang/
 ├── test/
 ├── CMakeLists.txt
 └── README.md
+```

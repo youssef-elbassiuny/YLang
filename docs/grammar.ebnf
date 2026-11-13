@@ -1,4 +1,4 @@
-
+```ebnf
 (* ================================= *)
 (*          YLang Grammar            *)
 (* ================================= *)
@@ -23,8 +23,8 @@ node_return = "_return", parse_arithmetic_expr, "semi" ;
 
 (* Variable Declaration *)
 
-node_let = "let", "ident", "eq",
-           parse_arithmetic_expr, "semi" ;
+node_let = [ "_const" ], "let", "ident", "eq",
+            parse_arithmetic_expr, "semi" ;
 
 (* Variable Assignment *)
 
@@ -56,7 +56,8 @@ node_while = "_while", "open", parse_bool_expr, "close",
 (* Functions *)
 
 node_fun = "fun", "ident", "open",
-           [ "ident", { "comma", "ident" } ],
+           [ ( "ident" | "_const", "ident" ),
+             { "comma", ( "ident" | "_const", "ident" ) } ],
            "close", node_scope ;
 
 (* Function Calls *)
@@ -91,3 +92,4 @@ parse_term = "number"
            | "ident"
            | ( "open", parse_arithmetic_expr, "close" )
            | node_call_fun ;
+```
