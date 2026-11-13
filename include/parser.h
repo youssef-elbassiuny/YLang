@@ -69,6 +69,7 @@ struct node_let
 {
     node_arithmetic_expr* expr;
     token ident;
+    bool is_const;
 };
 struct node_st;
 struct node_scope
@@ -109,7 +110,7 @@ struct node_while
 struct node_fun
 {
     token ident;
-    vector<token>param;
+    vector<pair<token , bool >>param;
     node_scope* scope;
 };
 struct node_st
@@ -480,9 +481,9 @@ public:
             st->var=_return;
             return st;
         }
-        else if(peek().has_value() && peek().value().type==token_type::let
+        else if((peek().has_value() && peek().value().type==token_type::let
             && peek(1).has_value() && peek(1).value().type==token_type::ident
-            && peek(2).has_value() && peek(2).value().type==token_type::eq)
+            && peek(2).has_value() && peek(2).value().type==token_type::eq))
         {
             consume();
             node_let* let=m_allocator.alloc<node_let>();
@@ -498,6 +499,42 @@ public:
                 cerr<<"expected expression"<<endl;
                 is_error=true;
             }
+            let->is_const=false;
+            if (peek().has_value() && peek().value().type==token_type::semi)
+            {
+                consume();
+            }
+            else
+            {
+                cerr<<"inline "<<peek().value().count_line-1<<endl;
+                cerr<<"expected ';'";
+                is_error=true;
+            }
+            node_st* st=m_allocator.alloc<node_st>();
+            st->var=let;
+            return st;
+        }
+        else if (peek().has_value() && peek().value().type==token_type::_const
+           && peek(1).has_value() && peek(1).value().type==token_type::let
+           && peek(2).has_value() && peek(2).value().type==token_type::ident
+           && peek(3).has_value() && peek(3).value().type==token_type::eq)
+        {
+            consume();
+            consume();
+            node_let* let=m_allocator.alloc<node_let>();
+            let->ident=consume();
+            consume();
+            if (auto exp =parse_arithmetic_expr())
+            {
+                let->expr=exp.value();
+            }
+            else
+            {
+                cerr<<"inline :"<<peek().value().count_line<<endl;
+                cerr<<"expected expression"<<endl;
+                is_error=true;
+            }
+            let->is_const=true;
             if (peek().has_value() && peek().value().type==token_type::semi)
             {
                 consume();
@@ -675,7 +712,7 @@ public:
             }
             if (peek().has_value() && peek().value().type==token_type::ident)
             {
-                n_f->param.push_back(consume());
+                n_f->param.push_back({consume() , false});
                 if (peek().has_value() && peek().value().type==token_type::close)
                 {
                     consume();
@@ -687,7 +724,13 @@ public:
                         consume();
                         if (peek().has_value() && peek().value().type==token_type::ident)
                         {
-                            n_f->param.push_back(consume());
+                            n_f->param.push_back({consume(), false});
+                        }
+                        else if (peek().has_value() && peek().value().type==token_type::_const
+                            && peek(1).has_value() && peek(1).value().type==token_type::ident)
+                        {
+                            consume();
+                            n_f->param.push_back({consume() , true});
                         }
                         else
                         {
@@ -714,6 +757,57 @@ public:
                     cerr<<"expected ( or param"<<endl;
                     is_error=true;
                 }
+
+            }
+            else if (peek().has_value() && peek().value().type==token_type::_const
+                && peek(1).has_value() && peek(1).value().type==token_type::ident)
+            {       consume();
+                    n_f->param.push_back({consume() , true});
+                    if (peek().has_value() && peek().value().type==token_type::close)
+                    {
+                        consume();
+                    }
+                    else if(peek().has_value() && peek().value().type==token_type::comma)
+                    {
+                        while (peek().has_value() && peek().value().type==token_type::comma)
+                        {
+                            consume();
+                            if (peek().has_value() && peek().value().type==token_type::ident)
+                            {
+                                n_f->param.push_back({consume(), false});
+                            }
+                            else if (peek().has_value() && peek().value().type==token_type::_const
+                                && peek(1).has_value() && peek(1).value().type==token_type::ident)
+                            {
+                                consume();
+                                n_f->param.push_back({consume() , true});
+                            }
+                            else
+                            {
+                                cerr<<"inline :"<<peek().value().count_line<<endl;
+                                cerr<<"expected param"<<endl;
+                                is_error=true;
+                            }
+
+                        }
+                        if (peek().has_value() && peek().value().type==token_type::close)
+                        {
+                            consume();
+                        }
+                        else
+                        {
+                            cerr<<"inline :"<<peek().value().count_line<<endl;
+                            cerr<<"expected )"<<endl;
+                            is_error=true;
+                        }
+                    }
+                    else
+                    {
+                        cerr<<"inline :"<<peek().value().count_line<<endl;
+                        cerr<<"expected ( or param"<<endl;
+                        is_error=true;
+                    }
+
 
             }
             else if (peek().has_value() && peek().value().type==token_type::close)

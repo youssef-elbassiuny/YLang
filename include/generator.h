@@ -108,7 +108,7 @@ public:
                 exit(EXIT_FAILURE);
             }
             llvm::Type *Int=llvm::Type::getInt32Ty(*context);
-            return builder->CreateLoad(Int, it->second, "load_value");
+            return builder->CreateLoad(Int, it->second.value, "load_value");
         }
         else if(holds_alternative<node_number*>(term->var))
         {
@@ -294,7 +294,7 @@ public:
                 );
 
             builder->CreateStore(exp, variable);
-            if (!define_variable(name, variable))
+            if (!define_variable(name, variable , let->is_const))
             {
                 cerr<<"variable already declared: "<<name<<endl;
                 exit(EXIT_FAILURE);
@@ -304,6 +304,7 @@ public:
         else if (holds_alternative<node_assignment*>(st->var))
         {
             node_assignment* assignment=get<node_assignment*>(st->var);
+
             auto it=m_variable.find(assignment->ident.value.value());
 
             if (it==m_variable.end())
@@ -311,8 +312,21 @@ public:
                 cerr<<"undeclared identefir"<<assignment->ident.value.value()<<endl;
                 exit(EXIT_FAILURE);
             }
-            llvm::Value* value =gen_arithmetic_exp(assignment->expr);
-            builder->CreateStore(value, it->second);
+            else
+            {
+                if (it->second.is_const==false)
+                {
+                    llvm::Value* value =gen_arithmetic_exp(assignment->expr);
+                    builder->CreateStore(value, it->second.value);
+                }
+                else
+                {
+                    cerr<<it->first<<"is const"<<endl;
+                    exit(EXIT_FAILURE);
+
+                }
+            }
+
             return true;
         }
         else if (holds_alternative<node_if*>(st->var))
@@ -449,15 +463,15 @@ public:
             for (int i=0; i<fun->param.size() ;++i)
             {
                 llvm::Value* argument = &*arg++;
-                argument->setName(fun->param[i].value.value());
+                argument->setName(fun->param[i].first.value.value());
                 llvm::AllocaInst* variable =
-                builder->CreateAlloca(Int, nullptr, fun->param[i].value.value());
+                builder->CreateAlloca(Int, nullptr, fun->param[i].first.value.value());
 
                 builder->CreateStore(argument, variable);
 
-                if (!define_variable(fun->param[i].value.value(), variable))
+                if (!define_variable(fun->param[i].first.value.value(), variable ,fun->param[i].second ))
                 {
-                    cerr << "parameter already declared: " << fun->param[i].value.value()<< endl;
+                    cerr << "parameter already declared: " << fun->param[i].first.value.value()<< endl;
                     exit(EXIT_FAILURE);
                 }
             }
@@ -532,7 +546,7 @@ public:
         }
         m_scope.pop_back();
     }
-    bool define_variable(const std::string& name, llvm::Value* value)
+    bool define_variable(const std::string& name, llvm::Value* value ,bool is_const)
     {
         auto& current_scope=m_scope.back();
 
@@ -545,26 +559,33 @@ public:
         bool existed = it != m_variable.end();
         current_scope.push_back({
             name,
-            existed?it->second:nullptr,
+            existed?it->second:variable{nullptr, false},
             existed
         });
-        m_variable[name]=value;
+        m_variable[name]={value,is_const };
         return true;
     }
 
 private:
+
+    struct variable
+    {
+        llvm::Value* value;
+        bool is_const;
+    };
     struct scope
     {
         string name;
-        llvm::Value* prev;
+        variable prev;
         bool exist;
     };
+
     vector<vector<scope>>m_scope;
     node_prog* m_root;
     std::unique_ptr<llvm::LLVMContext>context;
     std::unique_ptr<llvm::Module>module;
     std::unique_ptr<llvm::IRBuilder<>>builder;
-    std::map<std::string,llvm::Value* >m_variable;
+    std::map<std::string,variable>m_variable;
     llvm::Function *main_function;
     vector<std::pair<std::string , std::size_t>>m_fun_code;
     map< std::size_t, llvm::Function*>m_fun;

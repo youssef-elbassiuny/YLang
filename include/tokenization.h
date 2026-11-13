@@ -30,7 +30,8 @@ enum class token_type
     d_equal,
     comma,
     fun,
-    fun_call
+    fun_call,
+    _const
 };
 
 struct token
@@ -109,6 +110,11 @@ public:
                 {
                     tokens.push_back({.type = token_type::fun ,.count_line = m_count_line});
                     buf .clear();
+                }
+                else if (buf=="const")
+                {
+                    tokens.push_back({.type = token_type::_const , .count_line = m_count_line});
+                    buf.clear();
                 }
                 else
                 {
